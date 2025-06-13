@@ -1,4 +1,5 @@
 defmodule LinkSaverWeb.LinksLive do
+  @moduledoc false
   use LinkSaverWeb, :live_view
 
   alias LinkSaver.Links
@@ -7,12 +8,18 @@ defmodule LinkSaverWeb.LinksLive do
   def render(assigns) do
     ~H"""
     <.form for={@form} phx-submit="submit" phx-change="validate" id="link-form">
-      <.input field={@form[:url]} autocomplete="off" required />
+      <.input
+        field={@form[:url]}
+        autocomplete="off"
+        label="Save a Link"
+        placeholder="https://wikipedia.com"
+        required
+      />
     </.form>
 
     <ul>
       <li :for={link <- @links} class="flex">
-        <a class="grow" href={link.url}><%= link.url %></a>
+        <a class="grow" href={link.url}>{link.url}</a>
         <button phx-click="delete" phx-value-id={link.id}>Delete</button>
       </li>
     </ul>
@@ -46,9 +53,7 @@ defmodule LinkSaverWeb.LinksLive do
         {:noreply, socket}
 
       {:error, changeset} ->
-        socket =
-          socket
-          |> put_flash(:error, "Link creation failed.")
+        socket = put_flash(socket, :error, "Link creation failed.")
 
         {:noreply, socket}
     end
@@ -61,9 +66,7 @@ defmodule LinkSaverWeb.LinksLive do
       |> Map.put(:action, :validate)
       |> to_form()
 
-    socket =
-      socket
-      |> assign(:form, form)
+    socket = assign(socket, :form, form)
 
     {:noreply, socket}
   end
@@ -79,9 +82,7 @@ defmodule LinkSaverWeb.LinksLive do
         {:noreply, socket}
 
       {:error, changeset} ->
-        socket =
-          socket
-          |> put_flash(:error, "Link deletion failed.")
+        socket = put_flash(socket, :error, "Link deletion failed.")
 
         {:noreply, socket}
     end
