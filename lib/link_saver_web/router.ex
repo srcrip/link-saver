@@ -22,6 +22,12 @@ defmodule LinkSaverWeb.Router do
   #   pipe_through :api
   # end
 
+  scope "/", LinkSaverWeb do
+    pipe_through :browser
+
+    get "/", PageController, :home
+  end
+
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:link_saver, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
@@ -63,7 +69,7 @@ defmodule LinkSaverWeb.Router do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
 
-      live "/", LinksLive
+      live "/links", LinksLive
     end
   end
 
