@@ -19,15 +19,14 @@ defmodule LinkSaverWeb.ConnCase do
 
   using do
     quote do
+      use LinkSaverWeb, :verified_routes
+      import LinkSaverWeb.ConnCase
+      import Phoenix.ConnTest
+      import Plug.Conn
       # The default endpoint for testing
       @endpoint LinkSaverWeb.Endpoint
 
-      use LinkSaverWeb, :verified_routes
-
       # Import conveniences for testing with connections
-      import Plug.Conn
-      import Phoenix.ConnTest
-      import LinkSaverWeb.ConnCase
     end
   end
 

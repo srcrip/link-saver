@@ -1,5 +1,8 @@
 import Config
 
+# In test we don't send emails
+config :link_saver, LinkSaver.Mailer, adapter: Swoosh.Adapters.Test
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
@@ -20,12 +23,6 @@ config :link_saver, LinkSaverWeb.Endpoint,
   secret_key_base: "9IEZWWVzL5jqUuQ+Tw8WjTKZiJrTtm1ltAjYUzaNPDAXzMoDqwdADrNT8k8Hkbth",
   server: false
 
-# In test we don't send emails
-config :link_saver, LinkSaver.Mailer, adapter: Swoosh.Adapters.Test
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
-
 # Print only warnings and errors during test
 config :logger, level: :warning
 
@@ -35,3 +32,6 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+# Disable swoosh api client as it is only required for production adapters
+config :swoosh, :api_client, false

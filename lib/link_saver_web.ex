@@ -23,10 +23,11 @@ defmodule LinkSaverWeb do
     quote do
       use Phoenix.Router, helpers: false
 
-      # Import common connection and controller functions to use in pipelines
-      import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
+
+      # Import common connection and controller functions to use in pipelines
+      import Plug.Conn
     end
   end
 
@@ -85,10 +86,11 @@ defmodule LinkSaverWeb do
       # Translation
       use Gettext, backend: LinkSaverWeb.Gettext
 
+      import LinkSaverWeb.CoreComponents
+
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components
-      import LinkSaverWeb.CoreComponents
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
