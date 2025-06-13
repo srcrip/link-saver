@@ -1,5 +1,8 @@
 import Config
 
+# Only in tests, remove the complexity from the password hashing algorithm
+config :bcrypt_elixir, :log_rounds, 1
+
 # In test we don't send emails
 config :link_saver, LinkSaver.Mailer, adapter: Swoosh.Adapters.Test
 
