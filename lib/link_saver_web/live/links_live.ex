@@ -27,14 +27,9 @@ defmodule LinkSaverWeb.LinksLive do
   end
 
   def mount(_params, _session, socket) do
-    form =
-      %Link{}
-      |> Link.changeset()
-      |> to_form()
-
     socket =
       socket
-      |> assign(:form, form)
+      |> reset_form()
       |> assign(:links, Links.list_links())
 
     {:ok, socket}
@@ -49,6 +44,7 @@ defmodule LinkSaverWeb.LinksLive do
           socket
           |> put_flash(:info, "Link created successfully.")
           |> assign(:links, Links.list_links())
+          |> reset_form()
 
         {:noreply, socket}
 
@@ -86,5 +82,14 @@ defmodule LinkSaverWeb.LinksLive do
 
         {:noreply, socket}
     end
+  end
+
+  defp reset_form(socket) do
+    form =
+      %Link{}
+      |> Link.changeset()
+      |> to_form()
+
+    assign(socket, :form, form)
   end
 end
