@@ -17,12 +17,6 @@ defmodule LinkSaverWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", LinkSaverWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
   # Other scopes may use custom stacks.
   # scope "/api", LinkSaverWeb do
   #   pipe_through :api
@@ -68,6 +62,8 @@ defmodule LinkSaverWeb.Router do
       on_mount: [{LinkSaverWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      live "/", LinksLive
     end
   end
 
