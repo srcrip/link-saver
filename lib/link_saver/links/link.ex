@@ -16,6 +16,21 @@ defmodule LinkSaver.Links.Link do
     link
     |> cast(attrs, [:url, :user_id])
     |> validate_required([:url, :user_id])
+    |> normalize_url()
     |> assoc_constraint(:user)
+  end
+
+  defp normalize_url(changeset) do
+    case get_change(changeset, :url) do
+      nil -> changeset
+      url -> 
+        normalized_url = 
+          if String.starts_with?(url, ["http://", "https://"]) do
+            url
+          else
+            "https://" <> url
+          end
+        put_change(changeset, :url, normalized_url)
+    end
   end
 end
