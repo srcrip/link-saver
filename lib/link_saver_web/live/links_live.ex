@@ -7,22 +7,55 @@ defmodule LinkSaverWeb.LinksLive do
 
   def render(assigns) do
     ~H"""
-    <.form for={@form} phx-submit="submit" phx-change="validate" id="link-form">
-      <.input
-        field={@form[:url]}
-        autocomplete="off"
-        label="Save a Link"
-        placeholder="https://wikipedia.com"
-        required
-      />
-    </.form>
+    <div>
+      <h1 class="text-lg font-medium mb-4">Links</h1>
 
-    <ul>
-      <li :for={link <- @links} class="flex">
-        <a class="grow" href={link.url}>{link.url}</a>
-        <button phx-click="delete" phx-value-id={link.id}>Delete</button>
-      </li>
-    </ul>
+      <.form for={@form} phx-submit="submit" phx-change="validate" id="link-form" class="mb-6">
+        <div class="flex gap-3 items-end">
+          <div class="flex-1">
+            <.input
+              field={@form[:url]}
+              autocomplete="off"
+              placeholder="https://example.com"
+              required
+              label="Add a new link"
+            />
+          </div>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            Add Link
+          </button>
+        </div>
+      </.form>
+
+      <%= if @links == [] do %>
+        <p class="text-gray-500 text-sm">No links saved yet.</p>
+      <% else %>
+        <div class="space-y-2">
+          <div :for={link <- @links} class="flex items-center justify-between py-2 border-b border-gray-100">
+            <div class="flex-1 min-w-0">
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 hover:underline text-sm truncate block"
+              >
+                {link.url}
+              </a>
+              <p class="text-xs text-gray-500 mt-1">
+                {Calendar.strftime(link.inserted_at, "%Y-%m-%d")}
+              </p>
+            </div>
+            <button
+              phx-click="delete"
+              phx-value-id={link.id}
+              class="text-xs text-gray-500 hover:text-red-600 ml-4"
+            >
+              delete
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
     """
   end
 

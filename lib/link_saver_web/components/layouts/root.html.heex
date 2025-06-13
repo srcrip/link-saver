@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="[scrollbar-gutter:stable]">
+<html lang="en" class="[scrollbar-gutter:stable] h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="LinkSaver" suffix=" · Phoenix Framework">
+    <.live_title default="LinkSaver" suffix=" · LinkSaver">
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
@@ -12,47 +12,30 @@
     </script>
   </head>
   <body class="bg-white">
-    <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_user do %>
-        <li class="text-[0.8125rem] leading-6 text-zinc-900">
-          {@current_user.email}
-        </li>
-        <li>
-          <.link
-            href={~p"/users/settings"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Settings
-          </.link>
-        </li>
-        <li>
-          <.link
-            href={~p"/users/log_out"}
-            method="delete"
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Log out
-          </.link>
-        </li>
-      <% else %>
-        <li>
-          <.link
-            href={~p"/users/register"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Register
-          </.link>
-        </li>
-        <li>
-          <.link
-            href={~p"/users/log_in"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Log in
-          </.link>
-        </li>
-      <% end %>
-    </ul>
-    {@inner_content}
+    <header class="border-b border-gray-200 py-3 px-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+          <.link href="/" class="font-medium text-gray-900">LinkSaver</.link>
+          <%= if @current_user do %>
+            <.link href="/links" class="text-gray-600 hover:text-gray-900">links</.link>
+          <% end %>
+        </div>
+        
+        <div class="flex items-center space-x-4 text-sm">
+          <%= if @current_user do %>
+            <span class="text-gray-600">{@current_user.email}</span>
+            <.link href={~p"/users/settings"} class="text-gray-600 hover:text-gray-900">settings</.link>
+            <.link href={~p"/users/log_out"} method="delete" class="text-gray-600 hover:text-gray-900">log out</.link>
+          <% else %>
+            <.link href={~p"/users/log_in"} class="text-gray-600 hover:text-gray-900">log in</.link>
+            <.link href={~p"/users/register"} class="text-gray-600 hover:text-gray-900">register</.link>
+          <% end %>
+        </div>
+      </div>
+    </header>
+    
+    <main class="flex-1">
+      {@inner_content}
+    </main>
   </body>
 </html>
