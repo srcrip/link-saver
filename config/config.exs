@@ -63,4 +63,8 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
+if config_env() in [:prod, :dev] do
+  import_config "../.env.exs"
+end
+
 import_config "#{config_env()}.exs"
