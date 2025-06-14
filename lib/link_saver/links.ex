@@ -46,6 +46,20 @@ defmodule LinkSaver.Links do
 
   def search_links_for_user(user_id, _), do: list_links_for_user(user_id)
 
+  def list_links_for_user_filtered_by_tags(user_id, tag_names) when is_list(tag_names) and length(tag_names) > 0 do
+    Repo.all(
+      from l in Link,
+      join: t in assoc(l, :tags),
+      where: l.user_id == ^user_id and t.name in ^tag_names,
+      group_by: l.id,
+      having: count(t.id) == ^length(tag_names),
+      order_by: [desc: l.inserted_at],
+      preload: [:tags]
+    )
+  end
+
+  def list_links_for_user_filtered_by_tags(user_id, _), do: list_links_for_user(user_id)
+
   def create_link(attrs) do
     %Link{}
     |> Link.changeset(attrs)

@@ -48,6 +48,23 @@ defmodule LinkSaverWeb.LinksLive do
         </form>
       </div>
 
+      <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="text-sm font-medium text-gray-700">Filter by tags:</span>
+          <button
+            :for={tag <- @available_tags}
+            type="button"
+            phx-click="toggle_tag_filter"
+            phx-value-tag={tag.name}
+            class={"px-3 py-1 rounded-full text-xs font-medium transition-colors #{
+              if tag.name in @selected_tags, do: "bg-blue-100 text-blue-800", else: "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }"}
+          >
+            {tag.name}
+          </button>
+        </div>
+      </div>
+
       <%= if @links == [] do %>
         <p class="text-gray-500 text-sm">No links saved yet.</p>
       <% else %>
@@ -205,11 +222,15 @@ defmodule LinkSaverWeb.LinksLive do
   end
 
   def mount(_params, _session, socket) do
+    user_id = socket.assigns.current_user.id
+    
     socket =
       socket
       |> reset_form()
       |> assign(:search_query, "")
-      |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
+      |> assign(:selected_tags, [])
+      |> assign(:available_tags, Links.list_tags_for_user(user_id))
+      |> assign(:links, Links.list_links_for_user(user_id))
 
     {:ok, socket}
   end
@@ -287,6 +308,23 @@ defmodule LinkSaverWeb.LinksLive do
     {:noreply, socket}
   end
 
+  def handle_event("toggle_tag_filter", %{"tag" => tag_name}, socket) do
+    selected_tags = socket.assigns.selected_tags
+    
+    updated_tags = if tag_name in selected_tags do
+      List.delete(selected_tags, tag_name)
+    else
+      [tag_name | selected_tags]
+    end
+    
+    socket =
+      socket
+      |> assign(:selected_tags, updated_tags)
+      |> refresh_links()
+
+    {:noreply, socket}
+  end
+
   def handle_event("save_tags", %{"link-id" => link_id, "tags" => tag_string}, socket) do
     case Links.get_link_with_tags(link_id) do
       nil ->
@@ -333,7 +371,34 @@ defmodule LinkSaverWeb.LinksLive do
   end
 
   defp refresh_links(socket) do
-    links = Links.search_links_for_user(socket.assigns.current_user.id, socket.assigns.search_query)
-    assign(socket, :links, links)
+    user_id = socket.assigns.current_user.id
+    search_query = socket.assigns.search_query
+    selected_tags = socket.assigns.selected_tags
+    
+    links = cond do
+      # If both search and tag filters are active
+      search_query != "" and length(selected_tags) > 0 ->
+        Links.search_links_for_user(user_id, search_query)
+        |> Enum.filter(fn link -> 
+          link_tag_names = Enum.map(link.tags, & &1.name)
+          Enum.all?(selected_tags, fn tag -> tag in link_tag_names end)
+        end)
+      
+      # If only search is active
+      search_query != "" ->
+        Links.search_links_for_user(user_id, search_query)
+      
+      # If only tag filters are active
+      length(selected_tags) > 0 ->
+        Links.list_links_for_user_filtered_by_tags(user_id, selected_tags)
+      
+      # Default: show all links
+      true ->
+        Links.list_links_for_user(user_id)
+    end
+    
+    socket
+    |> assign(:links, links)
+    |> assign(:available_tags, Links.list_tags_for_user(user_id))
   end
 end
