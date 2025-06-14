@@ -21,7 +21,10 @@ defmodule LinkSaverWeb.LinksLive do
               label="Add a new link"
             />
           </div>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
             Add Link
           </button>
         </div>
@@ -31,7 +34,10 @@ defmodule LinkSaverWeb.LinksLive do
         <p class="text-gray-500 text-sm">No links saved yet.</p>
       <% else %>
         <div class="space-y-2">
-          <div :for={link <- @links} class="flex items-center justify-between py-2 border-b border-gray-100">
+          <div
+            :for={link <- @links}
+            class="flex items-center justify-between py-2 border-b border-gray-100"
+          >
             <div class="flex-1 min-w-0">
               <a
                 href={link.url}
@@ -63,7 +69,7 @@ defmodule LinkSaverWeb.LinksLive do
     socket =
       socket
       |> reset_form()
-      |> assign(:links, Links.list_links())
+      |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
 
     {:ok, socket}
   end
@@ -72,16 +78,16 @@ defmodule LinkSaverWeb.LinksLive do
     params = Map.put(params, "user_id", socket.assigns.current_user.id)
 
     case Links.create_link(params) do
-      {:ok, link} ->
+      {:ok, _link} ->
         socket =
           socket
           |> put_flash(:info, "Link created successfully.")
-          |> assign(:links, Links.list_links())
+          |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
           |> reset_form()
 
         {:noreply, socket}
 
-      {:error, changeset} ->
+      {:error, _changeset} ->
         socket = put_flash(socket, :error, "Link creation failed.")
 
         {:noreply, socket}
@@ -106,11 +112,11 @@ defmodule LinkSaverWeb.LinksLive do
         socket =
           socket
           |> put_flash(:info, "Link deleted successfully.")
-          |> assign(:links, Links.list_links())
+          |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
 
         {:noreply, socket}
 
-      {:error, changeset} ->
+      {:error, _changeset} ->
         socket = put_flash(socket, :error, "Link deletion failed.")
 
         {:noreply, socket}

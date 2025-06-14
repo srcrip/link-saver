@@ -22,14 +22,17 @@ defmodule LinkSaver.Links.Link do
 
   defp normalize_url(changeset) do
     case get_change(changeset, :url) do
-      nil -> changeset
-      url -> 
-        normalized_url = 
+      nil ->
+        changeset
+
+      url ->
+        normalized_url =
           if String.starts_with?(url, ["http://", "https://"]) do
             url
           else
             "https://" <> url
           end
+
         put_change(changeset, :url, normalized_url)
     end
   end

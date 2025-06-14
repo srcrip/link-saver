@@ -20,20 +20,32 @@
             <.link href="/links" class="text-gray-600 hover:text-gray-900">links</.link>
           <% end %>
         </div>
-        
+
         <div class="flex items-center space-x-4 text-sm">
           <%= if @current_user do %>
             <span class="text-gray-600">{@current_user.email}</span>
-            <.link href={~p"/users/settings"} class="text-gray-600 hover:text-gray-900">settings</.link>
-            <.link href={~p"/users/log_out"} method="delete" class="text-gray-600 hover:text-gray-900">log out</.link>
+            <.link href={~p"/users/settings"} class="text-gray-600 hover:text-gray-900">
+              settings
+            </.link>
+            <.link
+              href={~p"/users/log_out"}
+              method="delete"
+              class="text-gray-600 hover:text-gray-900"
+            >
+              log out
+            </.link>
           <% else %>
-            <.link href={~p"/users/log_in"} class="text-gray-600 hover:text-gray-900">log in</.link>
-            <.link href={~p"/users/register"} class="text-gray-600 hover:text-gray-900">register</.link>
+            <.link href={~p"/users/log_in"} class="text-gray-600 hover:text-gray-900">
+              log in
+            </.link>
+            <.link href={~p"/users/register"} class="text-gray-600 hover:text-gray-900">
+              register
+            </.link>
           <% end %>
         </div>
       </div>
     </header>
-    
+
     <main class="flex-1">
       {@inner_content}
     </main>

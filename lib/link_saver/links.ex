@@ -13,6 +13,10 @@ defmodule LinkSaver.Links do
     Repo.all(from(l in Link, order_by: [desc: l.inserted_at]))
   end
 
+  def list_links_for_user(user_id) do
+    Repo.all(from(l in Link, where: l.user_id == ^user_id, order_by: [desc: l.inserted_at]))
+  end
+
   def create_link(attrs) do
     %Link{}
     |> Link.changeset(attrs)
