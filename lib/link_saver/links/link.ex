@@ -16,6 +16,7 @@ defmodule LinkSaver.Links.Link do
     field :favicon_url, :string
 
     belongs_to :user, LinkSaver.Users.User
+    many_to_many :tags, LinkSaver.Links.Tag, join_through: "link_tags", on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end

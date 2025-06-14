@@ -132,6 +132,34 @@ defmodule LinkSaverWeb.LinksLive do
                     {link.url}
                   </a>
                 </div>
+
+                <div class="mt-3">
+                  <div class="flex flex-wrap gap-1 mb-2">
+                    <span
+                      :for={tag <- link.tags}
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      {tag.name}
+                    </span>
+                  </div>
+
+                  <form phx-submit="save_tags" phx-value-link-id={link.id} class="flex gap-2">
+                    <input
+                      type="text"
+                      name="tags"
+                      id={"tag-input-#{link.id}"}
+                      value={Enum.map_join(link.tags, ", ", & &1.name)}
+                      placeholder="Add tags separated by commas..."
+                      class="flex-1 text-xs border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <.button
+                      type="submit"
+                      class="text-xs px-3 py-1 text-zinc-900 hover:underline hover:bg-transparent bg-transparent"
+                    >
+                      Save
+                    </.button>
+                  </form>
+                </div>
               </div>
 
               <div class="flex items-center gap-2 ml-4">
@@ -240,6 +268,31 @@ defmodule LinkSaverWeb.LinksLive do
       |> refresh_links()
 
     {:noreply, socket}
+  end
+
+  def handle_event("save_tags", %{"link-id" => link_id, "tags" => tag_string}, socket) do
+    case Links.get_link_with_tags(link_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Link not found.")}
+
+      link ->
+        # Parse the tag string into a list of tag names
+        tag_names =
+          tag_string
+          |> String.split(",")
+          |> Enum.map(&String.trim/1)
+          |> Enum.filter(&(&1 != ""))
+
+        case Links.set_link_tags(link, tag_names) do
+          {:ok, _updated_link} ->
+            socket = refresh_links(socket)
+
+            {:noreply, socket}
+
+          {:error, _reason} ->
+            {:noreply, put_flash(socket, :error, "Failed to update tags.")}
+        end
+    end
   end
 
   def handle_async({:fetch_metadata, _link_id}, {:ok, {:ok, _updated_link}}, socket) do
