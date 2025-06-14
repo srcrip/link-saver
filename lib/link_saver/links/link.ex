@@ -6,6 +6,14 @@ defmodule LinkSaver.Links.Link do
 
   schema "links" do
     field :url, :string
+    field :title, :string
+    field :description, :string
+    field :image_url, :string
+    field :site_name, :string
+    field :raw_html, :string
+    field :fetched_at, :utc_datetime
+    field :fetch_error, :string
+    field :favicon_url, :string
 
     belongs_to :user, LinkSaver.Users.User
 
@@ -18,6 +26,15 @@ defmodule LinkSaver.Links.Link do
     |> validate_required([:url, :user_id])
     |> normalize_url()
     |> assoc_constraint(:user)
+  end
+
+  def metadata_changeset(link, attrs \\ %{}) do
+    link
+    |> cast(attrs, [:title, :description, :image_url, :site_name, :raw_html, :fetched_at, :fetch_error, :favicon_url])
+    |> validate_length(:title, max: 500)
+    |> validate_length(:site_name, max: 200)
+    |> validate_length(:image_url, max: 1000)
+    |> validate_length(:favicon_url, max: 1000)
   end
 
   defp normalize_url(changeset) do

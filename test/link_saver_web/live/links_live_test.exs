@@ -228,5 +228,46 @@ defmodule LinkSaverWeb.LinksLiveTest do
       assert html =~ "https://my-link.com"
       refute html =~ "https://not-my-link.com"
     end
+
+    test "displays metadata when available", %{conn: conn, user: user} do
+      link_with_metadata_fixture(user, %{url: "https://test-metadata.com"})
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Example Title"
+      assert html =~ "This is an example description"
+      assert html =~ "Example Site"
+    end
+
+    test "shows loading state for new links", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://loading.com"})
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Loading..."
+    end
+
+    test "shows error state when fetch fails", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://error.com"})
+
+      # Simulate a fetch error
+      LinkSaver.Links.update_link_metadata(link, %{
+        fetch_error: "Connection failed",
+        fetched_at: DateTime.utc_now()
+      })
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Error"
+    end
   end
 end
