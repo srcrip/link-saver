@@ -1,5 +1,7 @@
 defmodule LinkSaver.Links.Tag do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "tags" do

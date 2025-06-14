@@ -223,7 +223,7 @@ defmodule LinkSaverWeb.LinksLive do
 
   def mount(_params, _session, socket) do
     user_id = socket.assigns.current_user.id
-    
+
     socket =
       socket
       |> reset_form()
@@ -310,13 +310,14 @@ defmodule LinkSaverWeb.LinksLive do
 
   def handle_event("toggle_tag_filter", %{"tag" => tag_name}, socket) do
     selected_tags = socket.assigns.selected_tags
-    
-    updated_tags = if tag_name in selected_tags do
-      List.delete(selected_tags, tag_name)
-    else
-      [tag_name | selected_tags]
-    end
-    
+
+    updated_tags =
+      if tag_name in selected_tags do
+        List.delete(selected_tags, tag_name)
+      else
+        [tag_name | selected_tags]
+      end
+
     socket =
       socket
       |> assign(:selected_tags, updated_tags)
@@ -374,29 +375,31 @@ defmodule LinkSaverWeb.LinksLive do
     user_id = socket.assigns.current_user.id
     search_query = socket.assigns.search_query
     selected_tags = socket.assigns.selected_tags
-    
-    links = cond do
-      # If both search and tag filters are active
-      search_query != "" and length(selected_tags) > 0 ->
-        Links.search_links_for_user(user_id, search_query)
-        |> Enum.filter(fn link -> 
-          link_tag_names = Enum.map(link.tags, & &1.name)
-          Enum.all?(selected_tags, fn tag -> tag in link_tag_names end)
-        end)
-      
-      # If only search is active
-      search_query != "" ->
-        Links.search_links_for_user(user_id, search_query)
-      
-      # If only tag filters are active
-      length(selected_tags) > 0 ->
-        Links.list_links_for_user_filtered_by_tags(user_id, selected_tags)
-      
-      # Default: show all links
-      true ->
-        Links.list_links_for_user(user_id)
-    end
-    
+
+    links =
+      cond do
+        # If both search and tag filters are active
+        search_query != "" and length(selected_tags) > 0 ->
+          user_id
+          |> Links.search_links_for_user(search_query)
+          |> Enum.filter(fn link ->
+            link_tag_names = Enum.map(link.tags, & &1.name)
+            Enum.all?(selected_tags, fn tag -> tag in link_tag_names end)
+          end)
+
+        # If only search is active
+        search_query != "" ->
+          Links.search_links_for_user(user_id, search_query)
+
+        # If only tag filters are active
+        length(selected_tags) > 0 ->
+          Links.list_links_for_user_filtered_by_tags(user_id, selected_tags)
+
+        # Default: show all links
+        true ->
+          Links.list_links_for_user(user_id)
+      end
+
     socket
     |> assign(:links, links)
     |> assign(:available_tags, Links.list_tags_for_user(user_id))
