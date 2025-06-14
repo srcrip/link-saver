@@ -30,6 +30,29 @@ defmodule LinkSaverWeb.LinksLive do
         </div>
       </.form>
 
+      <div class="mb-6">
+        <form phx-submit="search" phx-change="search" class="flex gap-3">
+          <div class="flex-1">
+            <input
+              type="text"
+              name="q"
+              value={@search_query}
+              placeholder="Search your links..."
+              class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+          <%= if @search_query && @search_query != "" do %>
+            <button
+              type="button"
+              phx-click="clear_search"
+              class="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Clear
+            </button>
+          <% end %>
+        </form>
+      </div>
+
       <%= if @links == [] do %>
         <p class="text-gray-500 text-sm">No links saved yet.</p>
       <% else %>
@@ -145,6 +168,7 @@ defmodule LinkSaverWeb.LinksLive do
     socket =
       socket
       |> reset_form()
+      |> assign(:search_query, "")
       |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
 
     {:ok, socket}
@@ -164,7 +188,7 @@ defmodule LinkSaverWeb.LinksLive do
         socket =
           socket
           |> put_flash(:info, "Link created successfully.")
-          |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
+          |> refresh_links()
           |> reset_form()
 
         {:noreply, socket}
@@ -194,7 +218,7 @@ defmodule LinkSaverWeb.LinksLive do
         socket =
           socket
           |> put_flash(:info, "Link deleted successfully.")
-          |> assign(:links, Links.list_links_for_user(socket.assigns.current_user.id))
+          |> refresh_links()
 
         {:noreply, socket}
 
@@ -205,15 +229,33 @@ defmodule LinkSaverWeb.LinksLive do
     end
   end
 
+  def handle_event("search", %{"q" => query}, socket) do
+    socket =
+      socket
+      |> assign(:search_query, query)
+      |> refresh_links()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    socket =
+      socket
+      |> assign(:search_query, "")
+      |> refresh_links()
+
+    {:noreply, socket}
+  end
+
   def handle_async({:fetch_metadata, _link_id}, {:ok, {:ok, _updated_link}}, socket) do
     # Metadata fetch succeeded, refresh the links list
-    socket = assign(socket, :links, Links.list_links_for_user(socket.assigns.current_user.id))
+    socket = refresh_links(socket)
     {:noreply, socket}
   end
 
   def handle_async({:fetch_metadata, _link_id}, {:ok, {:error, _reason}}, socket) do
     # Metadata fetch failed, but we still want to refresh to show the error state
-    socket = assign(socket, :links, Links.list_links_for_user(socket.assigns.current_user.id))
+    socket = refresh_links(socket)
     {:noreply, socket}
   end
 
@@ -232,5 +274,10 @@ defmodule LinkSaverWeb.LinksLive do
       |> to_form()
 
     assign(socket, :form, form)
+  end
+
+  defp refresh_links(socket) do
+    links = Links.search_links_for_user(socket.assigns.current_user.id, socket.assigns.search_query)
+    assign(socket, :links, links)
   end
 end

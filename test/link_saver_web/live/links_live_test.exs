@@ -270,4 +270,141 @@ defmodule LinkSaverWeb.LinksLiveTest do
       assert html =~ "Error"
     end
   end
+
+  describe "Search functionality" do
+    setup do
+      user = user_fixture()
+      %{user: user}
+    end
+
+    test "displays search form", %{conn: conn, user: user} do
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Search your links..."
+    end
+
+    test "can search links by URL", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://github.com"})
+      link_fixture(user, %{url: "https://google.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "github"})
+
+      html = render(lv)
+      assert html =~ "https://github.com"
+      refute html =~ "https://google.com"
+    end
+
+    test "can search links by title", %{conn: conn, user: user} do
+      link_with_metadata_fixture(user, %{url: "https://test.com"})
+      link_fixture(user, %{url: "https://other.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "Example"})
+
+      html = render(lv)
+      assert html =~ "Example Title"
+      refute html =~ "https://other.com"
+    end
+
+    test "shows clear button when searching", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://example.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Initially no clear button
+      refute render(lv) =~ "Clear"
+
+      # Search for something
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "example"})
+
+      # Now clear button should appear
+      assert render(lv) =~ "Clear"
+    end
+
+    test "can clear search", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://github.com"})
+      link_fixture(user, %{url: "https://google.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Search to filter results
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "github"})
+
+      html = render(lv)
+      assert html =~ "https://github.com"
+      refute html =~ "https://google.com"
+
+      # Clear search
+      lv
+      |> element("button[phx-click='clear_search']")
+      |> render_click()
+
+      html = render(lv)
+      assert html =~ "https://github.com"
+      assert html =~ "https://google.com"
+    end
+
+    test "search updates on form change", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://github.com"})
+      link_fixture(user, %{url: "https://google.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Use phx-change to trigger search
+      lv
+      |> element("form[phx-change='search']")
+      |> render_change(%{q: "github"})
+
+      html = render(lv)
+      assert html =~ "https://github.com"
+      refute html =~ "https://google.com"
+    end
+
+    test "search persists search query in form", %{conn: conn, user: user} do
+      link_fixture(user, %{url: "https://github.com"})
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "github"})
+
+      # Check that the search input has the value
+      assert lv
+             |> element("input[name='q']")
+             |> render() =~ ~r/value="github"/
+    end
+  end
 end

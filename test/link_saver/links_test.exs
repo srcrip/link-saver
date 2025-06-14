@@ -136,4 +136,148 @@ defmodule LinkSaver.LinksTest do
       assert "should be at most 1000 character(s)" in errors_on(changeset).favicon_url
     end
   end
+
+  describe "search_links_for_user/2" do
+    test "returns all links when search term is empty" do
+      user = user_fixture()
+      link1 = link_fixture(user, %{url: "https://example.com"})
+      link2 = link_fixture(user, %{url: "https://test.com"})
+
+      results = Links.search_links_for_user(user.id, "")
+      
+      assert length(results) == 2
+      assert Enum.any?(results, &(&1.id == link1.id))
+      assert Enum.any?(results, &(&1.id == link2.id))
+    end
+
+    test "searches by URL" do
+      user = user_fixture()
+      link1 = link_fixture(user, %{url: "https://github.com"})
+      _link2 = link_fixture(user, %{url: "https://google.com"})
+
+      results = Links.search_links_for_user(user.id, "github")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "searches by title when available" do
+      user = user_fixture()
+      link1 = link_with_metadata_fixture(user, %{url: "https://example.com"})
+      _link2 = link_fixture(user, %{url: "https://test.com"})
+
+      # Search for "Example" which should be in the title
+      results = Links.search_links_for_user(user.id, "Example")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "searches by description when available" do
+      user = user_fixture()
+      link1 = link_with_metadata_fixture(user, %{url: "https://example.com"})
+      _link2 = link_fixture(user, %{url: "https://test.com"})
+
+      # Search for "description" which should be in the description
+      results = Links.search_links_for_user(user.id, "description")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "searches by site name when available" do
+      user = user_fixture()
+      link1 = link_with_metadata_fixture(user, %{url: "https://example.com"})
+      _link2 = link_fixture(user, %{url: "https://test.com"})
+
+      # Search for "Site" which should be in the site_name
+      results = Links.search_links_for_user(user.id, "Site")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "supports multiple words search (AND operation)" do
+      user = user_fixture()
+      link1 = link_with_metadata_fixture(user, %{url: "https://example.com"})
+      _link2 = link_fixture(user, %{url: "https://test.com"})
+
+      # Search for both "Example" and "Title" which should both be in link1
+      results = Links.search_links_for_user(user.id, "Example Title")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "returns empty results when no matches found" do
+      user = user_fixture()
+      _link1 = link_fixture(user, %{url: "https://example.com"})
+      _link2 = link_fixture(user, %{url: "https://test.com"})
+
+      results = Links.search_links_for_user(user.id, "nonexistent")
+      
+      assert results == []
+    end
+
+    test "only returns links for specified user" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      
+      link1 = link_fixture(user1, %{url: "https://github.com"})
+      _link2 = link_fixture(user2, %{url: "https://github.com"})
+
+      results = Links.search_links_for_user(user1.id, "github")
+      
+      assert length(results) == 1
+      assert hd(results).id == link1.id
+    end
+
+    test "orders results by relevance (ts_rank)" do
+      user = user_fixture()
+      
+      # Create links with different levels of match relevance
+      link1 = link_with_metadata_fixture(user, %{url: "https://example.com"})
+
+      # Search for "example" - should find link1 with metadata
+      results = Links.search_links_for_user(user.id, "example")
+      
+      assert length(results) >= 1
+      assert hd(results).id == link1.id
+    end
+
+    test "handles single character search terms by returning all links" do
+      user = user_fixture()
+      link1 = link_fixture(user, %{url: "https://example.com"})
+      link2 = link_fixture(user, %{url: "https://test.com"})
+
+      results = Links.search_links_for_user(user.id, "a")
+      
+      assert length(results) == 2
+      assert Enum.any?(results, &(&1.id == link1.id))
+      assert Enum.any?(results, &(&1.id == link2.id))
+    end
+
+    test "handles search terms with only special characters" do
+      user = user_fixture()
+      link1 = link_fixture(user, %{url: "https://example.com"})
+      link2 = link_fixture(user, %{url: "https://test.com"})
+
+      # Search with only special characters should return all links
+      results = Links.search_links_for_user(user.id, "!@#$%")
+      
+      assert length(results) == 2
+      assert Enum.any?(results, &(&1.id == link1.id))
+      assert Enum.any?(results, &(&1.id == link2.id))
+    end
+
+    test "handles malformed search input gracefully" do
+      user = user_fixture()
+      link1 = link_fixture(user, %{url: "https://example.com"})
+
+      # These should not crash and should return sensible results
+      assert Links.search_links_for_user(user.id, "   ") == [link1]
+      assert Links.search_links_for_user(user.id, "\t\n") == [link1]
+      assert Links.search_links_for_user(user.id, "") == [link1]
+    end
+  end
 end

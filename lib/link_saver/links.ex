@@ -18,6 +18,30 @@ defmodule LinkSaver.Links do
     Repo.all(from(l in Link, where: l.user_id == ^user_id, order_by: [desc: l.inserted_at]))
   end
 
+  def search_links_for_user(user_id, search_term) when is_binary(search_term) and search_term != "" and byte_size(search_term) >= 2 do
+    # Clean and prepare search term for tsquery
+    cleaned_term = 
+      search_term
+      |> String.replace(~r/[^\w\s]/u, " ")
+      |> String.split()
+      |> Enum.filter(&(String.length(&1) > 0))
+      |> Enum.map(&"#{&1}:*")
+      |> Enum.join(" & ")
+
+    # Return early if no valid search terms after cleaning
+    if cleaned_term == "" do
+      list_links_for_user(user_id)
+    else
+      query = from l in Link,
+        where: l.user_id == ^user_id and fragment("? @@ to_tsquery('english', ?)", l.search_vector, ^cleaned_term),
+        order_by: [desc: fragment("ts_rank(?, to_tsquery('english', ?))", l.search_vector, ^cleaned_term)]
+      
+      Repo.all(query)
+    end
+  end
+
+  def search_links_for_user(user_id, _), do: list_links_for_user(user_id)
+
   def create_link(attrs) do
     %Link{}
     |> Link.changeset(attrs)
