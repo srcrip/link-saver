@@ -21,12 +21,9 @@ defmodule LinkSaverWeb.LinksLive do
               label="Add a new link"
             />
           </div>
-          <button
-            type="submit"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
+          <.button type="submit">
             Add Link
-          </button>
+          </.button>
         </div>
       </.form>
 
@@ -42,13 +39,9 @@ defmodule LinkSaverWeb.LinksLive do
             />
           </div>
           <%= if @search_query && @search_query != "" do %>
-            <button
-              type="button"
-              phx-click="clear_search"
-              class="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
+            <.button type="button" phx-click="clear_search">
               Clear
-            </button>
+            </.button>
           <% end %>
         </form>
       </div>
