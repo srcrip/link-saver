@@ -413,4 +413,202 @@ defmodule LinkSaverWeb.LinksLiveTest do
              |> render() =~ ~r/value="github"/
     end
   end
+
+  describe "Tag filtering functionality" do
+    setup do
+      user = user_fixture()
+      %{user: user}
+    end
+
+    test "displays tag filter interface", %{conn: conn, user: user} do
+      # Create links with tags
+      link1 = link_fixture(user, %{url: "https://example.com"})
+      link2 = link_fixture(user, %{url: "https://test.com"})
+
+      LinkSaver.Links.set_link_tags(link1, ["elixir", "phoenix"])
+      LinkSaver.Links.set_link_tags(link2, ["javascript", "react"])
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Filter by tags:"
+      assert html =~ "elixir"
+      assert html =~ "phoenix"
+      assert html =~ "javascript"
+      assert html =~ "react"
+    end
+
+    test "can filter links by single tag", %{conn: conn, user: user} do
+      link1 = link_fixture(user, %{url: "https://elixir-site.com"})
+      link2 = link_fixture(user, %{url: "https://js-site.com"})
+
+      LinkSaver.Links.set_link_tags(link1, ["elixir"])
+      LinkSaver.Links.set_link_tags(link2, ["javascript"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Filter by elixir tag
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      html = render(lv)
+      assert html =~ "https://elixir-site.com"
+      refute html =~ "https://js-site.com"
+    end
+
+    test "can filter links by multiple tags (AND operation)", %{conn: conn, user: user} do
+      link1 = link_fixture(user, %{url: "https://elixir-phoenix.com"})
+      link2 = link_fixture(user, %{url: "https://elixir-only.com"})
+      link3 = link_fixture(user, %{url: "https://phoenix-only.com"})
+
+      LinkSaver.Links.set_link_tags(link1, ["elixir", "phoenix"])
+      LinkSaver.Links.set_link_tags(link2, ["elixir"])
+      LinkSaver.Links.set_link_tags(link3, ["phoenix"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Filter by elixir tag first
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      # Then also filter by phoenix tag
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='phoenix']")
+      |> render_click()
+
+      html = render(lv)
+      assert html =~ "https://elixir-phoenix.com"
+      refute html =~ "https://elixir-only.com"
+      refute html =~ "https://phoenix-only.com"
+    end
+
+    test "can toggle tags on and off", %{conn: conn, user: user} do
+      link1 = link_fixture(user, %{url: "https://elixir-site.com"})
+      link2 = link_fixture(user, %{url: "https://js-site.com"})
+
+      LinkSaver.Links.set_link_tags(link1, ["elixir"])
+      LinkSaver.Links.set_link_tags(link2, ["javascript"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Initially both links should be visible
+      html = render(lv)
+      assert html =~ "https://elixir-site.com"
+      assert html =~ "https://js-site.com"
+
+      # Filter by elixir tag
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      html = render(lv)
+      assert html =~ "https://elixir-site.com"
+      refute html =~ "https://js-site.com"
+
+      # Toggle elixir tag off (should show all links again)
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      html = render(lv)
+      assert html =~ "https://elixir-site.com"
+      assert html =~ "https://js-site.com"
+    end
+
+    test "shows visual feedback for selected tags", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["elixir", "phoenix"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Initially no tags should be selected (no blue background)
+      html = render(lv)
+      refute html =~ ~r/button[^>]*phx-value-tag="elixir"[^>]*bg-blue-100/
+      refute html =~ ~r/button[^>]*phx-value-tag="phoenix"[^>]*bg-blue-100/
+
+      # Select elixir tag
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      # Now elixir tag should be highlighted
+      html = render(lv)
+      assert html =~ ~r/button[^>]*phx-value-tag="elixir"[^>]*bg-blue-100/
+      refute html =~ ~r/button[^>]*phx-value-tag="phoenix"[^>]*bg-blue-100/
+    end
+
+    test "combines search with tag filtering", %{conn: conn, user: user} do
+      link1 = link_fixture(user, %{url: "https://elixir-site.com"})
+      link2 = link_fixture(user, %{url: "https://javascript-site.com"})
+
+      LinkSaver.Links.set_link_tags(link1, ["elixir"])
+      LinkSaver.Links.set_link_tags(link2, ["javascript"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # First search for "elixir" to see what we get  
+      lv
+      |> element("form[phx-submit='search']")
+      |> render_submit(%{q: "elixir"})
+
+      html = render(lv)
+      # Should show the elixir link
+      assert html =~ "https://elixir-site.com"
+      refute html =~ "https://javascript-site.com"
+
+      # Then also filter by elixir tag
+      lv
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag='elixir']")
+      |> render_click()
+
+      html = render(lv)
+      # Should still show only the elixir link
+      assert html =~ "https://elixir-site.com"
+      refute html =~ "https://javascript-site.com"
+    end
+
+    test "interface shows tag filtering area", %{conn: conn, user: user} do
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Tag filter interface should always be shown
+      assert html =~ "Filter by tags:"
+    end
+
+    test "handles empty tag list gracefully", %{conn: conn, user: user} do
+      _link = link_fixture(user, %{url: "https://no-tags.com"})
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Should show the link even without tags
+      assert html =~ "https://no-tags.com"
+
+      # Tag filter interface should still be there even with no tags
+      assert html =~ "Filter by tags:"
+    end
+  end
 end
