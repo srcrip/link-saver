@@ -134,16 +134,33 @@ defmodule LinkSaverWeb.LinksLive do
                 </div>
 
                 <div class="mt-3">
-                  <div class="flex flex-wrap gap-1 mb-2">
+                  <div class="flex flex-wrap items-center gap-1 mb-2">
                     <span
                       :for={tag <- link.tags}
                       class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                     >
                       {tag.name}
                     </span>
+                    <button
+                      type="button"
+                      phx-click={
+                        JS.toggle(to: "#tag-form-#{link.id}", display: "flex")
+                        |> JS.toggle(to: "#tag-edit-#{link.id}")
+                        |> JS.toggle(to: "#tag-hide-#{link.id}")
+                      }
+                      class={"text-xs text-gray-500 hover:text-gray-700 #{if length(link.tags) > 0, do: "ml-2", else: ""}"}
+                    >
+                      <span id={"tag-edit-#{link.id}"}>Edit tags</span>
+                      <span id={"tag-hide-#{link.id}"} class="hidden">Hide tags</span>
+                    </button>
                   </div>
 
-                  <form phx-submit="save_tags" phx-value-link-id={link.id} class="flex gap-2">
+                  <form
+                    id={"tag-form-#{link.id}"}
+                    phx-submit="save_tags"
+                    phx-value-link-id={link.id}
+                    class="flex gap-2 hidden"
+                  >
                     <input
                       type="text"
                       name="tags"
