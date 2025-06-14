@@ -61,7 +61,8 @@ defmodule LinkSaver.MixProject do
       {:sobelow, ">= 0.0.0", only: [:dev], runtime: false},
       {:mix_audit, ">= 0.0.0", only: [:dev], runtime: false},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:instructor, "~> 0.1.0"}
+      {:instructor, "~> 0.1.0"},
+      {:mimic, "~> 1.12", only: :test}
     ]
   end
 

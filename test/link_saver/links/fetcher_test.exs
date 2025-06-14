@@ -1,7 +1,10 @@
 defmodule LinkSaver.Links.FetcherTest do
   use ExUnit.Case, async: true
+  use Mimic
 
   alias LinkSaver.Links.Fetcher
+
+  setup :verify_on_exit!
 
   describe "extract_metadata/2" do
     test "extracts title from title tag" do
@@ -216,8 +219,60 @@ defmodule LinkSaver.Links.FetcherTest do
   end
 
   describe "fetch_metadata/1" do
-    # Note: These are integration tests that would require mocking HTTP requests
-    # In a real test suite, you'd want to mock Req.get/2 to return predictable responses
+    test "successfully fetches and parses metadata from URL" do
+      html_response = """
+      <html>
+        <head>
+          <title>Test Page</title>
+          <meta name="description" content="Test description" />
+          <meta property="og:image" content="https://example.com/image.jpg" />
+        </head>
+        <body>Content</body>
+      </html>
+      """
+
+      expect(Req, :get, fn _url, _opts ->
+        {:ok, %{status: 200, body: html_response}}
+      end)
+
+      result = Fetcher.fetch_metadata("https://example.com/test")
+
+      assert {:ok, metadata} = result
+      assert metadata.title == "Test Page"
+      assert metadata.description == "Test description"
+      assert metadata.image_url == "https://example.com/image.jpg"
+      assert metadata.raw_html == html_response
+    end
+
+    test "handles HTTP error responses" do
+      expect(Req, :get, fn _url, _opts ->
+        {:ok, %{status: 404}}
+      end)
+
+      result = Fetcher.fetch_metadata("https://example.com/not-found")
+
+      assert {:error, "HTTP 404"} = result
+    end
+
+    test "handles network errors" do
+      expect(Req, :get, fn _url, _opts ->
+        {:error, :timeout}
+      end)
+
+      result = Fetcher.fetch_metadata("https://example.com/timeout")
+
+      assert {:error, :timeout} = result
+    end
+
+    test "handles exceptions during HTTP request" do
+      expect(Req, :get, fn _url, _opts ->
+        raise "Network error"
+      end)
+
+      result = Fetcher.fetch_metadata("https://example.com/error")
+
+      assert {:error, "Network error"} = result
+    end
 
     test "returns error for invalid URLs" do
       result = Fetcher.fetch_metadata("not-a-url")
