@@ -22,7 +22,7 @@ defmodule LinkSaver.LinksFixtures do
 
   def link_with_metadata_fixture(user, attrs \\ %{}) do
     link = link_fixture(user, attrs)
-    
+
     metadata = %{
       title: "Example Title",
       description: "This is an example description of the webpage.",
@@ -32,7 +32,7 @@ defmodule LinkSaver.LinksFixtures do
       raw_html: "<html><head><title>Example Title</title></head><body>Content</body></html>",
       fetched_at: DateTime.utc_now()
     }
-    
+
     {:ok, link_with_metadata} = LinkSaver.Links.update_link_metadata(link, metadata)
     link_with_metadata
   end

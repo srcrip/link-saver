@@ -23,28 +23,26 @@ defmodule LinkSaver.Links.Fetcher do
     end
   end
 
-  defp fetch_html(url) do
-    try do
-      case Req.get(url, 
-        max_redirects: 5,
-        receive_timeout: 10_000,
-        headers: [
-          {"user-agent", "LinkSaver/1.0 (+https://linksaver.app)"}
-        ]
-      ) do
-        {:ok, %{status: status, body: body}} when status in 200..299 ->
-          {:ok, body}
+  def fetch_html(url) do
+    case Req.get(url,
+           max_redirects: 5,
+           receive_timeout: 10_000,
+           headers: [
+             {"user-agent", "curl/8.4.0"}
+           ]
+         ) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, body}
 
-        {:ok, %{status: status}} ->
-          {:error, "HTTP #{status}"}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP #{status}"}
 
-        {:error, reason} ->
-          {:error, reason}
-      end
-    rescue
-      exception ->
-        {:error, Exception.message(exception)}
+      {:error, reason} ->
+        {:error, reason}
     end
+  rescue
+    exception ->
+      {:error, Exception.message(exception)}
   end
 
   def extract_metadata(html, url) do
@@ -74,27 +72,27 @@ defmodule LinkSaver.Links.Fetcher do
 
   defp extract_title(document) do
     # Try multiple sources for title in order of preference
-    title = 
+    title =
       extract_meta_property(document, "og:title") ||
-      extract_meta_name(document, "twitter:title") ||
-      extract_title_tag(document)
+        extract_meta_name(document, "twitter:title") ||
+        extract_title_tag(document)
 
     title && String.trim(title)
   end
 
   defp extract_description(document) do
-    description = 
+    description =
       extract_meta_property(document, "og:description") ||
-      extract_meta_name(document, "twitter:description") ||
-      extract_meta_name(document, "description")
+        extract_meta_name(document, "twitter:description") ||
+        extract_meta_name(document, "description")
 
-    description && String.trim(description) |> truncate_description()
+    description && description |> String.trim() |> truncate_description()
   end
 
   defp extract_image_url(document, base_url) do
-    image_url = 
+    image_url =
       extract_meta_property(document, "og:image") ||
-      extract_meta_name(document, "twitter:image")
+        extract_meta_name(document, "twitter:image")
 
     case image_url do
       nil -> nil
@@ -103,22 +101,22 @@ defmodule LinkSaver.Links.Fetcher do
   end
 
   defp extract_site_name(document, url) do
-    site_name = 
+    site_name =
       extract_meta_property(document, "og:site_name") ||
-      extract_site_name_from_url(url)
+        extract_site_name_from_url(url)
 
     site_name && String.trim(site_name)
   end
 
   defp extract_favicon_url(document, base_url) do
     # Try multiple sources for favicon in order of preference
-    favicon_url = 
-      # Modern high-resolution favicons
+    # Modern high-resolution favicons
+    # Fallback to standard /favicon.ico
+    favicon_url =
       extract_link_rel(document, "apple-touch-icon") ||
-      extract_link_rel(document, "icon") ||
-      extract_link_rel(document, "shortcut icon") ||
-      # Fallback to standard /favicon.ico
-      "/favicon.ico"
+        extract_link_rel(document, "icon") ||
+        extract_link_rel(document, "shortcut icon") ||
+        "/favicon.ico"
 
     case favicon_url do
       nil -> nil
@@ -128,25 +126,29 @@ defmodule LinkSaver.Links.Fetcher do
 
   # Helper functions for extracting specific meta tags
   defp extract_meta_property(document, property) do
-    Floki.find(document, "meta[property='#{property}']")
+    document
+    |> Floki.find("meta[property='#{property}']")
     |> Floki.attribute("content")
     |> List.first()
   end
 
   defp extract_meta_name(document, name) do
-    Floki.find(document, "meta[name='#{name}']")
+    document
+    |> Floki.find("meta[name='#{name}']")
     |> Floki.attribute("content")
     |> List.first()
   end
 
   defp extract_link_rel(document, rel) do
-    Floki.find(document, "link[rel*='#{rel}']")
+    document
+    |> Floki.find("link[rel*='#{rel}']")
     |> Floki.attribute("href")
     |> List.first()
   end
 
   defp extract_title_tag(document) do
-    Floki.find(document, "title")
+    document
+    |> Floki.find("title")
     |> Floki.text()
     |> case do
       "" -> nil
@@ -170,7 +172,8 @@ defmodule LinkSaver.Links.Fetcher do
         |> hd()
         |> String.capitalize()
 
-      _ -> nil
+      _ ->
+        nil
     end
   end
 
@@ -180,7 +183,8 @@ defmodule LinkSaver.Links.Fetcher do
         base_uri = URI.parse(base_url)
         "#{base_uri.scheme}://#{base_uri.host}#{url}"
 
-      _ -> url
+      _ ->
+        url
     end
   end
 
@@ -199,7 +203,8 @@ defmodule LinkSaver.Links.Fetcher do
       %URI{scheme: scheme, host: host} when not is_nil(scheme) and not is_nil(host) ->
         "#{scheme}://#{host}/favicon.ico"
 
-      _ -> nil
+      _ ->
+        nil
     end
   end
 end

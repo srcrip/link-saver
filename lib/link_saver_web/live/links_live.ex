@@ -34,14 +34,17 @@ defmodule LinkSaverWeb.LinksLive do
         <p class="text-gray-500 text-sm">No links saved yet.</p>
       <% else %>
         <div class="space-y-4">
-          <div :for={link <- @links} class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+          <div
+            :for={link <- @links}
+            class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+          >
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-2">
                   <%= if link.favicon_url do %>
-                    <img 
-                      src={link.favicon_url} 
-                      alt="Favicon" 
+                    <img
+                      src={link.favicon_url}
+                      alt="Favicon"
                       class="w-4 h-4 flex-shrink-0"
                       loading="lazy"
                       onerror="this.style.display='none'"
@@ -49,7 +52,7 @@ defmodule LinkSaverWeb.LinksLive do
                   <% else %>
                     <div class="w-4 h-4 bg-gray-300 rounded-sm flex-shrink-0"></div>
                   <% end %>
-                  
+
                   <%= if link.title do %>
                     <h3 class="text-sm font-medium text-gray-900 truncate">
                       <a
@@ -71,26 +74,26 @@ defmodule LinkSaverWeb.LinksLive do
                       {link.url}
                     </a>
                   <% end %>
-                  
+
                   <%= if is_nil(link.fetched_at) and is_nil(link.fetch_error) do %>
                     <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                       Loading...
                     </span>
                   <% end %>
-                  
+
                   <%= if link.fetch_error do %>
                     <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
                       Error
                     </span>
                   <% end %>
                 </div>
-                
+
                 <%= if link.description do %>
                   <p class="text-sm text-gray-600 mb-2">
                     {link.description}
                   </p>
                 <% end %>
-                
+
                 <div class="flex items-center gap-4 text-xs text-gray-500">
                   <%= if link.site_name do %>
                     <span>{link.site_name}</span>
@@ -100,7 +103,7 @@ defmodule LinkSaverWeb.LinksLive do
                     <span>Updated {Calendar.strftime(link.fetched_at, "%Y-%m-%d")}</span>
                   <% end %>
                 </div>
-                
+
                 <div class="mt-2">
                   <a
                     href={link.url}
@@ -112,12 +115,12 @@ defmodule LinkSaverWeb.LinksLive do
                   </a>
                 </div>
               </div>
-              
+
               <div class="flex items-center gap-2 ml-4">
                 <%= if link.image_url do %>
-                  <img 
-                    src={link.image_url} 
-                    alt="Preview" 
+                  <img
+                    src={link.image_url}
+                    alt="Preview"
                     class="w-16 h-16 object-cover rounded"
                     loading="lazy"
                   />
@@ -153,9 +156,10 @@ defmodule LinkSaverWeb.LinksLive do
     case Links.create_link(params) do
       {:ok, link} ->
         # Start async task to fetch metadata
-        socket = start_async(socket, {:fetch_metadata, link.id}, fn ->
-          Links.fetch_and_update_metadata(link.id)
-        end)
+        socket =
+          start_async(socket, {:fetch_metadata, link.id}, fn ->
+            Links.fetch_and_update_metadata(link.id)
+          end)
 
         socket =
           socket
@@ -216,6 +220,7 @@ defmodule LinkSaverWeb.LinksLive do
   def handle_async({:fetch_metadata, _link_id}, {:exit, reason}, socket) do
     # Async task crashed
     require Logger
+
     Logger.warning("Link metadata fetch crashed: #{inspect(reason)}")
     {:noreply, socket}
   end

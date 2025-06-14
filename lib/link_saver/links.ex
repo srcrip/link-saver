@@ -2,8 +2,8 @@ defmodule LinkSaver.Links do
   @moduledoc false
   import Ecto.Query
 
-  alias LinkSaver.Links.Link
   alias LinkSaver.Links.Fetcher
+  alias LinkSaver.Links.Link
   alias LinkSaver.Repo
 
   def get_link(id) do
@@ -42,7 +42,7 @@ defmodule LinkSaver.Links do
 
   def fetch_and_update_metadata(link_id) do
     case get_link(link_id) do
-      nil -> 
+      nil ->
         {:error, :not_found}
 
       link ->
@@ -56,6 +56,7 @@ defmodule LinkSaver.Links do
               fetch_error: "#{reason}",
               fetched_at: DateTime.utc_now()
             }
+
             update_link_metadata(link, error_metadata)
         end
     end
