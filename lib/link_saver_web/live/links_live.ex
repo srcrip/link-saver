@@ -171,7 +171,7 @@ defmodule LinkSaverWeb.LinksLive do
                     />
                     <.button
                       type="submit"
-                      class="text-xs px-3 py-1 text-zinc-900 hover:underline hover:bg-transparent bg-transparent"
+                      class="text-xs px-3 py-1 text-zinc-900 hover:underline hover:!bg-transparent !bg-transparent"
                     >
                       Save
                     </.button>
