@@ -10,22 +10,24 @@ defmodule LinkSaverWeb.LinksLive do
     <div>
       <h1 class="text-lg font-medium mb-4">Links</h1>
 
-      <.form for={@form} phx-submit="submit" phx-change="validate" id="link-form" class="mb-6">
-        <div class="flex gap-3 items-end">
-          <div class="flex-1">
-            <.input
-              field={@form[:url]}
-              autocomplete="off"
-              placeholder="https://example.com"
-              required
-              label="Add a new link"
-            />
+      <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-4 mb-6">
+        <.form for={@form} phx-submit="submit" phx-change="validate" id="link-form">
+          <div class="flex gap-3 items-end">
+            <div class="flex-1">
+              <.input
+                field={@form[:url]}
+                autocomplete="off"
+                placeholder="https://example.com"
+                required
+                label="Add a new link"
+              />
+            </div>
+            <.button type="submit">
+              Add Link
+            </.button>
           </div>
-          <.button type="submit">
-            Add Link
-          </.button>
-        </div>
-      </.form>
+        </.form>
+      </div>
 
       <div class="mb-6">
         <form phx-submit="search" phx-change="search" class="flex gap-3">
