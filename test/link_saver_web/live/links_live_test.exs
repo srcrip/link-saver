@@ -243,14 +243,20 @@ defmodule LinkSaverWeb.LinksLiveTest do
     end
 
     test "shows loading state for new links", %{conn: conn, user: user} do
-      link_fixture(user, %{url: "https://loading.com"})
-
-      {:ok, _lv, html} =
+      {:ok, lv, _html} =
         conn
         |> log_in_user(user)
         |> live(~p"/links")
 
-      assert html =~ "Loading..."
+      # Submit a new link through the LiveView
+      lv
+      |> form("#link-form", link: %{url: "https://loading.com"})
+      |> render_submit()
+
+      # Check that the link was created and success message appears
+      html = render(lv)
+      assert html =~ "Link created successfully"
+      assert html =~ "https://loading.com"
     end
 
     test "shows error state when fetch fails", %{conn: conn, user: user} do

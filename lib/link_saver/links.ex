@@ -2,6 +2,7 @@ defmodule LinkSaver.Links do
   @moduledoc false
   import Ecto.Query
 
+  alias LinkSaver.Links.AutoTagger
   alias LinkSaver.Links.Fetcher
   alias LinkSaver.Links.Link
   alias LinkSaver.Links.Tag
@@ -19,25 +20,26 @@ defmodule LinkSaver.Links do
     Repo.all(from(l in Link, where: l.user_id == ^user_id, order_by: [desc: l.inserted_at], preload: [:tags]))
   end
 
-  def search_links_for_user(user_id, search_term) when is_binary(search_term) and search_term != "" and byte_size(search_term) >= 2 do
+  def search_links_for_user(user_id, search_term)
+      when is_binary(search_term) and search_term != "" and byte_size(search_term) >= 2 do
     # Clean and prepare search term for tsquery
-    cleaned_term = 
+    cleaned_term =
       search_term
       |> String.replace(~r/[^\w\s]/u, " ")
       |> String.split()
       |> Enum.filter(&(String.length(&1) > 0))
-      |> Enum.map(&"#{&1}:*")
-      |> Enum.join(" & ")
+      |> Enum.map_join(" & ", &"#{&1}:*")
 
-    # Return early if no valid search terms after cleaning
+    # Return if no valid search terms after cleaning
     if cleaned_term == "" do
       list_links_for_user(user_id)
     else
-      query = from l in Link,
-        where: l.user_id == ^user_id and fragment("? @@ to_tsquery('english', ?)", l.search_vector, ^cleaned_term),
-        order_by: [desc: fragment("ts_rank(?, to_tsquery('english', ?))", l.search_vector, ^cleaned_term)],
-        preload: [:tags]
-      
+      query =
+        from l in Link,
+          where: l.user_id == ^user_id and fragment("? @@ to_tsquery('english', ?)", l.search_vector, ^cleaned_term),
+          order_by: [desc: fragment("ts_rank(?, to_tsquery('english', ?))", l.search_vector, ^cleaned_term)],
+          preload: [:tags]
+
       Repo.all(query)
     end
   end
@@ -101,7 +103,7 @@ defmodule LinkSaver.Links do
 
   def find_or_create_tag(name, user_id) when is_binary(name) and name != "" do
     name = String.trim(name)
-    
+
     case Repo.get_by(Tag, name: name, user_id: user_id) do
       nil -> create_tag(%{name: name, user_id: user_id})
       tag -> {:ok, tag}
@@ -126,9 +128,9 @@ defmodule LinkSaver.Links do
 
   def set_link_tags(link, tag_names) when is_list(tag_names) do
     user_id = link.user_id
-    
+
     # Find or create all tags
-    {:ok, tags} = 
+    {:ok, tags} =
       tag_names
       |> Enum.map(&String.trim/1)
       |> Enum.filter(&(&1 != ""))
@@ -149,7 +151,36 @@ defmodule LinkSaver.Links do
   end
 
   def get_link_with_tags(id) do
-    Repo.get(Link, id)
+    Link
+    |> Repo.get(id)
     |> Repo.preload(:tags)
+  end
+
+  @doc """
+  Automatically generates and applies tags to a link using an LLM.
+  """
+  def auto_tag_link(link_id) when is_integer(link_id) do
+    case get_link_with_tags(link_id) do
+      nil -> {:error, :not_found}
+      link -> auto_tag_link(link)
+    end
+  end
+
+  def auto_tag_link(%Link{} = link) do
+    with {:ok, tag_names} <- AutoTagger.generate_tags(link) do
+      apply_tags_if_any(link, tag_names)
+    end
+  end
+
+  defp apply_tags_if_any(link, []), do: {:ok, link}
+  defp apply_tags_if_any(link, tag_names), do: set_link_tags(link, tag_names)
+
+  @doc """
+  Fetches metadata for a link and then automatically generates tags.
+  """
+  def fetch_metadata_and_auto_tag(link_id) do
+    with {:ok, link} <- fetch_and_update_metadata(link_id) do
+      auto_tag_link(link)
+    end
   end
 end

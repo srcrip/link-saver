@@ -95,7 +95,7 @@ defmodule LinkSaverWeb.LinksLive do
 
                   <%= if is_nil(link.fetched_at) and is_nil(link.fetch_error) do %>
                     <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      Loading...
+                      Loading & Auto-tagging...
                     </span>
                   <% end %>
 
@@ -219,10 +219,10 @@ defmodule LinkSaverWeb.LinksLive do
 
     case Links.create_link(params) do
       {:ok, link} ->
-        # Start async task to fetch metadata
+        # Start async task to fetch metadata and auto-tag
         socket =
-          start_async(socket, {:fetch_metadata, link.id}, fn ->
-            Links.fetch_and_update_metadata(link.id)
+          start_async(socket, {:fetch_and_tag, link.id}, fn ->
+            Links.fetch_metadata_and_auto_tag(link.id)
           end)
 
         socket =
@@ -312,23 +312,14 @@ defmodule LinkSaverWeb.LinksLive do
     end
   end
 
-  def handle_async({:fetch_metadata, _link_id}, {:ok, {:ok, _updated_link}}, socket) do
-    # Metadata fetch succeeded, refresh the links list
-    socket = refresh_links(socket)
-    {:noreply, socket}
+  def handle_async({:fetch_and_tag, _link_id}, {:ok, _result}, socket) do
+    {:noreply, refresh_links(socket)}
   end
 
-  def handle_async({:fetch_metadata, _link_id}, {:ok, {:error, _reason}}, socket) do
-    # Metadata fetch failed, but we still want to refresh to show the error state
-    socket = refresh_links(socket)
-    {:noreply, socket}
-  end
-
-  def handle_async({:fetch_metadata, _link_id}, {:exit, reason}, socket) do
-    # Async task crashed
+  def handle_async({:fetch_and_tag, _link_id}, {:exit, reason}, socket) do
     require Logger
 
-    Logger.warning("Link metadata fetch crashed: #{inspect(reason)}")
+    Logger.warning("Link metadata fetch and auto-tagging crashed: #{inspect(reason)}")
     {:noreply, socket}
   end
 
