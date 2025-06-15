@@ -411,15 +411,15 @@ defmodule LinkSaver.LinksTest do
     test "delete_tag/1 removes tag associations from links" do
       user = user_fixture()
       link = link_fixture(user)
-      
+
       Links.set_link_tags(link, ["test-tag", "other-tag"])
       link_with_tags = Links.get_link_with_tags(link.id)
       assert length(link_with_tags.tags) == 2
-      
+
       # Find and delete the test-tag
       test_tag = Enum.find(link_with_tags.tags, &(&1.name == "test-tag"))
       assert {:ok, _} = Links.delete_tag(test_tag)
-      
+
       # Verify the tag is removed from the link
       updated_link = Links.get_link_with_tags(link.id)
       assert length(updated_link.tags) == 1
@@ -436,16 +436,16 @@ defmodule LinkSaver.LinksTest do
     end
 
     test "get_tag/1 returns nil for non-existent tag" do
-      assert is_nil(Links.get_tag(999999))
+      assert is_nil(Links.get_tag(999_999))
     end
 
     test "delete_tag/1 with non-existent tag returns error" do
       user = user_fixture()
       {:ok, tag} = Links.create_tag(%{name: "temp-tag", user_id: user.id})
-      
+
       # Delete the tag first to create a stale reference
       Links.delete_tag(tag)
-      
+
       # Now try to delete the already deleted tag
       assert_raise Ecto.StaleEntryError, fn ->
         Links.delete_tag(tag)

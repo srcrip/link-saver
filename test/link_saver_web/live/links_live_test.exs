@@ -688,7 +688,7 @@ defmodule LinkSaverWeb.LinksLiveTest do
     test "lists all user tags in modal", %{conn: conn, user: user} do
       link1 = link_fixture(user, %{url: "https://example1.com"})
       link2 = link_fixture(user, %{url: "https://example2.com"})
-      
+
       LinkSaver.Links.set_link_tags(link1, ["elixir", "phoenix"])
       LinkSaver.Links.set_link_tags(link2, ["javascript", "react"])
 
@@ -705,10 +705,10 @@ defmodule LinkSaverWeb.LinksLiveTest do
 
     test "only shows tags for current user", %{conn: conn, user: user} do
       other_user = user_fixture()
-      
+
       link1 = link_fixture(user, %{url: "https://user1.com"})
       link2 = link_fixture(other_user, %{url: "https://user2.com"})
-      
+
       LinkSaver.Links.set_link_tags(link1, ["user1-tag"])
       LinkSaver.Links.set_link_tags(link2, ["user2-tag"])
 
@@ -731,8 +731,10 @@ defmodule LinkSaverWeb.LinksLiveTest do
         |> live(~p"/links?manage_tags=true")
 
       # Find the delete button for the specific tag
-      delete_me_tag = LinkSaver.Links.list_tags_for_user(user.id)
-                      |> Enum.find(&(&1.name == "delete-me"))
+      delete_me_tag =
+        user.id
+        |> LinkSaver.Links.list_tags_for_user()
+        |> Enum.find(&(&1.name == "delete-me"))
 
       # Click delete button
       lv
@@ -755,8 +757,10 @@ defmodule LinkSaverWeb.LinksLiveTest do
         |> log_in_user(user)
         |> live(~p"/links?manage_tags=true")
 
-      delete_me_tag = LinkSaver.Links.list_tags_for_user(user.id)
-                      |> Enum.find(&(&1.name == "delete-me"))
+      delete_me_tag =
+        user.id
+        |> LinkSaver.Links.list_tags_for_user()
+        |> Enum.find(&(&1.name == "delete-me"))
 
       # Delete the tag
       lv
@@ -767,7 +771,7 @@ defmodule LinkSaverWeb.LinksLiveTest do
       html = render(lv)
       refute html =~ "delete-me"
       assert html =~ "keep-me"
-      
+
       # Verify the tag was actually deleted from the database
       updated_link = LinkSaver.Links.get_link_with_tags(link.id)
       tag_names = Enum.map(updated_link.tags, & &1.name)
@@ -800,15 +804,17 @@ defmodule LinkSaverWeb.LinksLiveTest do
         |> log_in_user(user)
         |> live(~p"/links")
 
-      refute html =~ "Manage Tags</h3>"  # Modal title should not be present
-      
+      # Modal title should not be present
+      refute html =~ "Manage Tags</h3>"
+
       # Test modal is shown with query param
       {:ok, _lv, html} =
         conn
         |> log_in_user(user)
         |> live(~p"/links?manage_tags=true")
-      
-      assert html =~ "Manage Tags</h3>"  # Modal title should be present
+
+      # Modal title should be present
+      assert html =~ "Manage Tags</h3>"
       assert html =~ "test-tag"
     end
   end
