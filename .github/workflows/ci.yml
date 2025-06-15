@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  MIX_ENV: test
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  test:
+    name: Test (Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }})
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        elixir: ['1.14', '1.15', '1.16']
+        otp: ['25', '26']
+        exclude:
+          - elixir: '1.14'
+            otp: '26'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: link_saver_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp }}
+
+    - name: Cache deps
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+    - name: Cache compiled build
+      uses: actions/cache@v4
+      with:
+        path: _build
+        key: ${{ runner.os }}-build-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+    - name: Cache PLT files
+      uses: actions/cache@v4
+      with:
+        path: priv/plts
+        key: ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Compile dependencies
+      run: mix deps.compile
+
+    - name: Setup database
+      run: mix ecto.create && mix ecto.migrate
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/link_saver_test
+
+    - name: Compile application
+      run: mix compile --warnings-as-errors
+
+    - name: Run tests
+      run: mix test --cover
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/link_saver_test
+
+  code_quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache deps
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-quality-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-mix-quality-
+
+    - name: Cache compiled build
+      uses: actions/cache@v4
+      with:
+        path: _build
+        key: ${{ runner.os }}-build-quality-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-build-quality-
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Run code quality checks
+      run: mix check --except dialyzer
+
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache deps
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-dialyzer-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-mix-dialyzer-
+
+    - name: Cache compiled build
+      uses: actions/cache@v4
+      with:
+        path: _build
+        key: ${{ runner.os }}-build-dialyzer-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-build-dialyzer-
+
+    - name: Cache PLT files
+      uses: actions/cache@v4
+      with:
+        path: priv/plts
+        key: ${{ runner.os }}-plt-dialyzer-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-plt-dialyzer-
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Run Dialyzer
+      run: mix dialyzer
+
+  assets:
+    name: Assets
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Cache deps
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-assets-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-mix-assets-
+
+    - name: Install Elixir dependencies
+      run: mix deps.get
+
+    - name: Setup assets
+      run: mix assets.setup
+
+    - name: Build assets
+      run: mix assets.build
+
+    - name: Build assets for deployment
+      run: mix assets.deploy
