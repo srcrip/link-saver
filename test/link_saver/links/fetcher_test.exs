@@ -249,6 +249,7 @@ defmodule LinkSaver.Links.FetcherTest do
       assert metadata.raw_html == html_response
     end
 
+    @tag :capture_log
     test "handles HTTP error responses" do
       expect(Req, :get, fn _url, _opts ->
         {:ok, %{status: 404}}
@@ -259,6 +260,7 @@ defmodule LinkSaver.Links.FetcherTest do
       assert {:error, "HTTP 404"} = result
     end
 
+    @tag :capture_log
     test "handles network errors" do
       expect(Req, :get, fn _url, _opts ->
         {:error, :timeout}
@@ -269,6 +271,7 @@ defmodule LinkSaver.Links.FetcherTest do
       assert {:error, :timeout} = result
     end
 
+    @tag :capture_log
     test "handles exceptions during HTTP request" do
       expect(Req, :get, fn _url, _opts ->
         raise "Network error"
@@ -279,6 +282,7 @@ defmodule LinkSaver.Links.FetcherTest do
       assert {:error, "Network error"} = result
     end
 
+    @tag :capture_log
     test "returns error for invalid URLs" do
       result = Fetcher.fetch_metadata("not-a-url")
 
