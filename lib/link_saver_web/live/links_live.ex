@@ -221,7 +221,7 @@ defmodule LinkSaverWeb.LinksLive do
                 <button
                   phx-click="delete"
                   phx-value-id={link.id}
-                  class="text-xs text-gray-500 hover:text-red-600 p-2 hover:bg-red-50 rounded"
+                  class="place-self-start -mt-1.5 -mr-1.5 text-xs text-gray-500 hover:text-red-600 p-1.5 hover:bg-red-50 rounded"
                 >
                   delete
                 </button>
