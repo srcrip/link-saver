@@ -382,10 +382,7 @@ defmodule LinkSaverWeb.LinksLive do
         search_query != "" and length(selected_tags) > 0 ->
           user_id
           |> Links.search_links_for_user(search_query)
-          |> Enum.filter(fn link ->
-            link_tag_names = Enum.map(link.tags, & &1.name)
-            Enum.all?(selected_tags, fn tag -> tag in link_tag_names end)
-          end)
+          |> filter_links_by_tags(selected_tags)
 
         # If only search is active
         search_query != "" ->
@@ -403,5 +400,12 @@ defmodule LinkSaverWeb.LinksLive do
     socket
     |> assign(:links, links)
     |> assign(:available_tags, Links.list_tags_for_user(user_id))
+  end
+
+  defp filter_links_by_tags(links, selected_tags) do
+    Enum.filter(links, fn link ->
+      link_tag_names = Enum.map(link.tags, & &1.name)
+      Enum.all?(selected_tags, fn tag -> tag in link_tag_names end)
+    end)
   end
 end

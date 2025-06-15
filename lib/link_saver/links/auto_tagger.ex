@@ -90,7 +90,9 @@ defmodule LinkSaver.Links.AutoTagger do
 
   defp call_llm(prompt) do
     case get_api_key() do
-      nil -> {:error, "API key not configured"}
+      nil ->
+        {:error, "API key not configured"}
+
       api_key ->
         config = [adapter: Instructor.Adapters.Gemini, api_key: api_key]
 

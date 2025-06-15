@@ -86,7 +86,7 @@ defmodule LinkSaver.Links.Fetcher do
         extract_meta_name(document, "twitter:description") ||
         extract_meta_name(document, "description")
 
-    description && description |> String.trim() |> truncate_description()
+    description && truncate_description(String.trim(description))
   end
 
   defp extract_image_url(document, base_url) do
@@ -195,8 +195,6 @@ defmodule LinkSaver.Links.Fetcher do
       description
     end
   end
-
-  defp truncate_description(nil), do: nil
 
   defp extract_favicon_url_fallback(url) do
     case URI.parse(url) do

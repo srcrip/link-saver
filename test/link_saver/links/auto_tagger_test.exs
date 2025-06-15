@@ -49,6 +49,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       }
 
       expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
+
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:ok, mock_response}
       end)
@@ -68,6 +69,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       }
 
       expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
+
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:error, "API rate limit exceeded"}
       end)
@@ -86,6 +88,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       }
 
       expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
+
       expect(Instructor, :chat_completion, fn _messages, _config ->
         raise "Network timeout"
       end)
@@ -122,6 +125,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       }
 
       expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
+
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:ok, mock_response}
       end)
@@ -147,18 +151,19 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       assert length(tags) <= 10
     end
 
-
-    test "handles missing API key configuration without mocking" do
-      # This test runs without any API key set in the environment
+    test "handles missing API key configuration" do
+      # This test simulates no API key being available
       # and should gracefully return empty tags
       link = %Link{
         title: "Test Article",
         description: "Test description",
-        site_name: "Test Site", 
+        site_name: "Test Site",
         raw_html: "<html><body>Test content</body></html>"
       }
 
-      # Don't set up any mocking - rely on actual environment state
+      # Mock System.get_env to return nil (no API key)
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> nil end)
+
       result = AutoTagger.generate_tags(link)
       assert {:ok, []} = result
     end
@@ -173,6 +178,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
 
       # Mock with an invalid API key that will cause LLM calls to fail
       expect(System, :get_env, fn "GEMINI_API_KEY" -> "invalid-key" end)
+
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:error, "Invalid API key"}
       end)
