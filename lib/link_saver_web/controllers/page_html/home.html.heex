@@ -27,20 +27,32 @@
   </div>
 
   <div class="text-center">
-    <p class="text-gray-600 mb-6">Get started by creating an account or logging in.</p>
-    <div class="space-x-4">
-      <a
-        href="/users/register"
-        class="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
-      >
-        Register
-      </a>
-      <a
-        href="/users/log_in"
-        class="inline-block px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50 transition-colors"
-      >
-        Log In
-      </a>
-    </div>
+    <%= if @current_user do %>
+      <p class="text-gray-600 mb-6">Welcome back, {@current_user.email}!</p>
+      <div class="space-x-4">
+        <a
+          href="/links"
+          class="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+        >
+          My Links
+        </a>
+      </div>
+    <% else %>
+      <p class="text-gray-600 mb-6">Get started by creating an account or logging in.</p>
+      <div class="space-x-4">
+        <a
+          href="/users/register"
+          class="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Register
+        </a>
+        <a
+          href="/users/log_in"
+          class="inline-block px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50 transition-colors"
+        >
+          Log In
+        </a>
+      </div>
+    <% end %>
   </div>
 </div>
