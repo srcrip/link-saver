@@ -61,14 +61,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-build-${{ matrix.elixir }}-${{ matrix.otp }}-
 
-    - name: Cache PLT files
-      uses: actions/cache@v4
-      with:
-        path: priv/plts
-        key: ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-
-
     - name: Install dependencies
       run: mix deps.get
 
