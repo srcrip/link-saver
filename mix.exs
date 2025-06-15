@@ -9,7 +9,11 @@ defmodule LinkSaver.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        plt_add_apps: [:ex_unit],
+        plt_ignore_apps: [:test_support]
+      ]
     ]
   end
 
