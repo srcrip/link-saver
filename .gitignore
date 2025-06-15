@@ -35,4 +35,4 @@ link_saver-*.tar
 npm-debug.log
 /assets/node_modules/
 
-.env.exs
+.env.dev.exs
