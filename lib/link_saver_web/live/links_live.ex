@@ -168,11 +168,7 @@ defmodule LinkSaverWeb.LinksLive do
                     </span>
                     <button
                       type="button"
-                      phx-click={
-                        JS.toggle(to: "#tag-form-#{link.id}", display: "flex")
-                        |> JS.toggle(to: "#tag-edit-#{link.id}")
-                        |> JS.toggle(to: "#tag-hide-#{link.id}")
-                      }
+                      phx-click={JS.exec("data-toggle-form", to: "#tag-form-#{link.id}")}
                       class={"text-xs text-gray-500 hover:text-gray-700 #{if length(link.tags) > 0, do: "ml-2", else: ""}"}
                     >
                       <span id={"tag-edit-#{link.id}"}>Edit tags</span>
@@ -182,9 +178,18 @@ defmodule LinkSaverWeb.LinksLive do
 
                   <form
                     id={"tag-form-#{link.id}"}
-                    phx-submit="save_tags"
+                    data-toggle-form={
+                      JS.toggle(to: "#tag-form-#{link.id}", display: "flex")
+                      |> JS.toggle(to: "#tag-edit-#{link.id}")
+                      |> JS.toggle(to: "#tag-hide-#{link.id}")
+                    }
+                    phx-submit={
+                      JS.push("save_tags")
+                      |> JS.exec("data-toggle-form", to: "#tag-form-#{link.id}")
+                    }
                     phx-value-link-id={link.id}
                     class="flex gap-2 hidden"
+                    phx-click-away={JS.exec("data-toggle-form", to: "#tag-form-#{link.id}")}
                   >
                     <input
                       type="text"
