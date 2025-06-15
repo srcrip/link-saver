@@ -62,6 +62,14 @@ defmodule LinkSaverWeb.LinksLive do
           >
             {tag.name}
           </button>
+          <%= if length(@available_tags) > 0 do %>
+            <.link
+              patch={~p"/links?manage_tags=true"}
+              class="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 ml-2"
+            >
+              Manage Tags
+            </.link>
+          <% end %>
         </div>
       </div>
 
@@ -217,6 +225,38 @@ defmodule LinkSaverWeb.LinksLive do
           </div>
         </div>
       <% end %>
+
+      <.modal
+        :if={Map.has_key?(@params, "manage_tags")}
+        id="manage-tags-modal"
+        show
+        on_cancel={JS.patch(~p"/links")}
+      >
+        <div class="space-y-4">
+          <h3 class="text-lg font-medium text-gray-900">Manage Tags</h3>
+
+          <%= if length(@available_tags) == 0 do %>
+            <p class="text-gray-600">No tags found.</p>
+          <% else %>
+            <div class="space-y-1">
+              <div
+                :for={tag <- @available_tags}
+                class="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0"
+              >
+                <span class="text-sm font-mono">{tag.name}</span>
+                <button
+                  type="button"
+                  phx-click="delete_tag"
+                  phx-value-tag-id={tag.id}
+                  class="text-sm text-red-600 hover:underline"
+                >
+                  delete
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </.modal>
     </div>
     """
   end
@@ -229,10 +269,15 @@ defmodule LinkSaverWeb.LinksLive do
       |> reset_form()
       |> assign(:search_query, "")
       |> assign(:selected_tags, [])
+      |> assign(:params, %{})
       |> assign(:available_tags, Links.list_tags_for_user(user_id))
       |> assign(:links, Links.list_links_for_user(user_id))
 
     {:ok, socket}
+  end
+
+  def handle_params(params, _url, socket) do
+    {:noreply, assign(socket, :params, params)}
   end
 
   def handle_event("submit", %{"link" => params}, socket) do
@@ -347,6 +392,28 @@ defmodule LinkSaverWeb.LinksLive do
 
           {:error, _reason} ->
             {:noreply, put_flash(socket, :error, "Failed to update tags.")}
+        end
+    end
+  end
+
+  def handle_event("delete_tag", %{"tag-id" => tag_id}, socket) do
+    case Links.get_tag(tag_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Tag not found.")}
+
+      tag ->
+        case Links.delete_tag(tag) do
+          {:ok, _tag} ->
+            socket =
+              socket
+              |> put_flash(:info, "Tag deleted successfully.")
+              |> refresh_links()
+
+            {:noreply, socket}
+
+          {:error, _changeset} ->
+            socket = put_flash(socket, :error, "Tag deletion failed.")
+            {:noreply, socket}
         end
     end
   end

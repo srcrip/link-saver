@@ -115,6 +115,14 @@ defmodule LinkSaver.Links do
     |> Repo.insert()
   end
 
+  def delete_tag(tag) do
+    Repo.delete(tag)
+  end
+
+  def get_tag(id) do
+    Repo.get(Tag, id)
+  end
+
   def find_or_create_tag(name, user_id) when is_binary(name) and name != "" do
     name = String.trim(name)
 

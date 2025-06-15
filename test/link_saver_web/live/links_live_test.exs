@@ -611,4 +611,205 @@ defmodule LinkSaverWeb.LinksLiveTest do
       assert html =~ "Filter by tags:"
     end
   end
+
+  describe "Tag management modal" do
+    setup do
+      user = user_fixture()
+      %{user: user}
+    end
+
+    test "shows manage tags button when tags exist", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["test-tag"])
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      assert html =~ "Manage Tags"
+    end
+
+    test "does not show manage tags button when no tags exist", %{conn: conn, user: user} do
+      _link = link_fixture(user, %{url: "https://example.com"})
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      refute html =~ "Manage Tags"
+    end
+
+    test "opens modal when manage tags button is clicked", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["test-tag"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      # Click manage tags link
+      lv
+      |> element("a[href='/links?manage_tags=true']")
+      |> render_click()
+
+      # Should navigate to URL with query param
+      assert_patch(lv, ~p"/links?manage_tags=true")
+    end
+
+    test "shows modal when visiting URL with manage_tags param", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["test-tag"])
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      assert html =~ "Manage Tags"
+      assert html =~ "test-tag"
+      assert html =~ "delete"
+    end
+
+    test "shows empty state in modal when no tags exist", %{conn: conn, user: user} do
+      _link = link_fixture(user, %{url: "https://example.com"})
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      assert html =~ "Manage Tags"
+      assert html =~ "No tags found"
+    end
+
+    test "lists all user tags in modal", %{conn: conn, user: user} do
+      link1 = link_fixture(user, %{url: "https://example1.com"})
+      link2 = link_fixture(user, %{url: "https://example2.com"})
+      
+      LinkSaver.Links.set_link_tags(link1, ["elixir", "phoenix"])
+      LinkSaver.Links.set_link_tags(link2, ["javascript", "react"])
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      assert html =~ "elixir"
+      assert html =~ "phoenix"
+      assert html =~ "javascript"
+      assert html =~ "react"
+    end
+
+    test "only shows tags for current user", %{conn: conn, user: user} do
+      other_user = user_fixture()
+      
+      link1 = link_fixture(user, %{url: "https://user1.com"})
+      link2 = link_fixture(other_user, %{url: "https://user2.com"})
+      
+      LinkSaver.Links.set_link_tags(link1, ["user1-tag"])
+      LinkSaver.Links.set_link_tags(link2, ["user2-tag"])
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      assert html =~ "user1-tag"
+      refute html =~ "user2-tag"
+    end
+
+    test "can delete a tag from modal", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["delete-me", "keep-me"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      # Find the delete button for the specific tag
+      delete_me_tag = LinkSaver.Links.list_tags_for_user(user.id)
+                      |> Enum.find(&(&1.name == "delete-me"))
+
+      # Click delete button
+      lv
+      |> element("button[phx-click='delete_tag'][phx-value-tag-id='#{delete_me_tag.id}']")
+      |> render_click()
+
+      # Tag should be removed from the modal
+      html = render(lv)
+      refute html =~ "delete-me"
+      assert html =~ "keep-me"
+      assert html =~ "Tag deleted successfully"
+    end
+
+    test "deleting tag removes it from links", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["delete-me", "keep-me"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      delete_me_tag = LinkSaver.Links.list_tags_for_user(user.id)
+                      |> Enum.find(&(&1.name == "delete-me"))
+
+      # Delete the tag
+      lv
+      |> element("button[phx-click='delete_tag'][phx-value-tag-id='#{delete_me_tag.id}']")
+      |> render_click()
+
+      # Verify tag is removed from the modal
+      html = render(lv)
+      refute html =~ "delete-me"
+      assert html =~ "keep-me"
+      
+      # Verify the tag was actually deleted from the database
+      updated_link = LinkSaver.Links.get_link_with_tags(link.id)
+      tag_names = Enum.map(updated_link.tags, & &1.name)
+      refute "delete-me" in tag_names
+      assert "keep-me" in tag_names
+    end
+
+    test "shows error when trying to delete non-existent tag", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["test-tag"])
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+
+      # Try to delete non-existent tag by sending event directly
+      result = render_hook(lv, "delete_tag", %{"tag-id" => "999999"})
+
+      assert result =~ "Tag not found"
+    end
+
+    test "modal shows when query param is present and hides when absent", %{conn: conn, user: user} do
+      link = link_fixture(user, %{url: "https://example.com"})
+      LinkSaver.Links.set_link_tags(link, ["test-tag"])
+
+      # Test modal is hidden without query param
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links")
+
+      refute html =~ "Manage Tags</h3>"  # Modal title should not be present
+      
+      # Test modal is shown with query param
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/links?manage_tags=true")
+      
+      assert html =~ "Manage Tags</h3>"  # Modal title should be present
+      assert html =~ "test-tag"
+    end
+  end
 end
