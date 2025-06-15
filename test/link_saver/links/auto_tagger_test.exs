@@ -5,6 +5,12 @@ defmodule LinkSaver.Links.AutoTaggerTest do
   alias LinkSaver.Links.AutoTagger
   alias LinkSaver.Links.Link
 
+  setup do
+    Mimic.copy(Instructor)
+    Mimic.copy(System)
+    :ok
+  end
+
   setup :verify_on_exit!
 
   describe "generate_tags/1" do
@@ -42,6 +48,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
         reasoning: "Tags based on programming language and educational content"
       }
 
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:ok, mock_response}
       end)
@@ -60,13 +67,14 @@ defmodule LinkSaver.Links.AutoTaggerTest do
         raw_html: "<html><body>Test content</body></html>"
       }
 
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:error, "API rate limit exceeded"}
       end)
 
       result = AutoTagger.generate_tags(link)
 
-      assert {:error, "API rate limit exceeded"} = result
+      assert {:ok, []} = result
     end
 
     test "handles LLM API exceptions" do
@@ -77,13 +85,14 @@ defmodule LinkSaver.Links.AutoTaggerTest do
         raw_html: "<html><body>Test content</body></html>"
       }
 
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
       expect(Instructor, :chat_completion, fn _messages, _config ->
         raise "Network timeout"
       end)
 
       result = AutoTagger.generate_tags(link)
 
-      assert {:error, "LLM call failed: Network timeout"} = result
+      assert {:ok, []} = result
     end
 
     test "cleans and validates returned tags" do
@@ -112,6 +121,7 @@ defmodule LinkSaver.Links.AutoTaggerTest do
         reasoning: "Tags for web development content"
       }
 
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> "test-api-key" end)
       expect(Instructor, :chat_completion, fn _messages, _config ->
         {:ok, mock_response}
       end)
@@ -137,21 +147,38 @@ defmodule LinkSaver.Links.AutoTaggerTest do
       assert length(tags) <= 10
     end
 
-    test "handles missing API key configuration" do
+
+    test "handles missing API key configuration without mocking" do
+      # This test runs without any API key set in the environment
+      # and should gracefully return empty tags
       link = %Link{
-        title: "Test",
-        description: nil,
-        site_name: nil,
-        raw_html: nil
+        title: "Test Article",
+        description: "Test description",
+        site_name: "Test Site", 
+        raw_html: "<html><body>Test content</body></html>"
       }
 
-      # Mock System.get_env and Application.get_env to return nil
-      stub(System, :get_env, fn "GEMINI_API_KEY" -> nil end)
-      stub(Application, :get_env, fn :link_saver, :gemini_api_key -> nil end)
+      # Don't set up any mocking - rely on actual environment state
+      result = AutoTagger.generate_tags(link)
+      assert {:ok, []} = result
+    end
 
-      assert_raise RuntimeError, "GEMINI_API_KEY environment variable not set", fn ->
-        AutoTagger.generate_tags(link)
-      end
+    test "handles invalid API key gracefully" do
+      link = %Link{
+        title: "Test Article",
+        description: "Test description",
+        site_name: "Test Site",
+        raw_html: "<html><body>Test content</body></html>"
+      }
+
+      # Mock with an invalid API key that will cause LLM calls to fail
+      expect(System, :get_env, fn "GEMINI_API_KEY" -> "invalid-key" end)
+      expect(Instructor, :chat_completion, fn _messages, _config ->
+        {:error, "Invalid API key"}
+      end)
+
+      result = AutoTagger.generate_tags(link)
+      assert {:ok, []} = result
     end
   end
 

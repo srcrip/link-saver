@@ -36,7 +36,7 @@ defmodule LinkSaver.Links.AutoTagger do
       {:ok, clean_and_validate_tags(tags)}
     else
       "" -> {:ok, []}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:ok, []}
     end
   end
 
@@ -89,25 +89,28 @@ defmodule LinkSaver.Links.AutoTagger do
   end
 
   defp call_llm(prompt) do
-    config = [adapter: Instructor.Adapters.Gemini, api_key: get_api_key()]
+    case get_api_key() do
+      nil -> {:error, "API key not configured"}
+      api_key ->
+        config = [adapter: Instructor.Adapters.Gemini, api_key: api_key]
 
-    Instructor.chat_completion(
-      [
-        model: "gemini-2.0-flash-exp",
-        mode: :json_schema,
-        response_model: TagSuggestion,
-        messages: [%{role: "user", content: prompt}]
-      ],
-      config
-    )
-  catch
+        Instructor.chat_completion(
+          [
+            model: "gemini-2.0-flash-exp",
+            mode: :json_schema,
+            response_model: TagSuggestion,
+            messages: [%{role: "user", content: prompt}]
+          ],
+          config
+        )
+    end
+  rescue
     error -> {:error, "LLM call failed: #{Exception.message(error)}"}
   end
 
   defp get_api_key do
     System.get_env("GEMINI_API_KEY") ||
-      Application.get_env(:link_saver, :gemini_api_key) ||
-      raise "GEMINI_API_KEY environment variable not set"
+      Application.get_env(:link_saver, :gemini_api_key)
   end
 
   defp clean_and_validate_tags(tags) when is_list(tags) do

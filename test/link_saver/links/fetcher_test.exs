@@ -4,6 +4,11 @@ defmodule LinkSaver.Links.FetcherTest do
 
   alias LinkSaver.Links.Fetcher
 
+  setup do
+    Mimic.copy(Req)
+    :ok
+  end
+
   setup :verify_on_exit!
 
   describe "extract_metadata/2" do
