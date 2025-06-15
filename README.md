@@ -14,4 +14,4 @@ one of those services that let you bookmark links for later, cause the bookmarks
 
 ## Try it out
 
-This app is currently deployed at [https://linksaver.src.rip](https://linksaver.src.rip)
+This app is currently deployed at [https://linksaver.fly.dev/](https://linksaver.fly.dev/)
